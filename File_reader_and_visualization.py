@@ -1,6 +1,7 @@
 import glob
-
+import os
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 
 
 def process_experiment_file(experiments_data):
@@ -36,8 +37,6 @@ def process_experiment_file(experiments_data):
     return total_time, vertex_count, density_val
 
 
-
-
 files = glob.glob("experiments_data*.txt")
 all_results = []
 
@@ -56,73 +55,44 @@ for experiments_data in files:
         pass
 
 
-unique_vertex_counts = sorted(list(set(r['vertexes'] for r in all_results)))
-
-print(f"Знайдено груп за вершинами: {unique_vertex_counts}")
-
+unique_densities = sorted(list(set(r['density'] for r in all_results)))
 plt.style.use('dark_background')
 
+for target_density in unique_densities:
 
-for v_target in unique_vertex_counts:
+    group_data = [r for r in all_results if r['density'] == target_density]
+    group_data.sort(key=lambda x: x['vertexes'])
 
+    if not group_data: continue
 
-    group_data = [r for r in all_results if r['vertexes'] == v_target]
-
-
-    group_data.sort(key=lambda x: x['density'])
-
-
-    x_labels = [f"{i + 1}" for i in range(len(group_data))]
-    y_vertexes = [r['vertexes'] for r in group_data]  # Це буде пряма лінія
-    y_density = [r['density'] * 100 for r in group_data]  # Густина x100
+    x_vals = [r['vertexes'] for r in group_data]
     y_time = [r['avg_time'] for r in group_data]
 
 
-    fig, ax1 = plt.subplots(figsize=(14, 7))
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    fig.canvas.manager.set_window_title(f'Analysis for Density {target_density}')
+    plt.title(f'Time vs Vertex Count (Fixed Density: {target_density})')
+
+    ax.plot(x_vals, y_time, color='#ffcf60', linewidth=2, marker='o', markersize=6, label='Avg Time')
+
+    ax.set_xlabel('Number of Vertexes')
+    ax.set_ylabel('Average Time (seconds)', color='#ffcf60')
+    ax.tick_params(axis='y', labelcolor='#ffcf60')
 
 
-    fig.canvas.manager.set_window_title(f'Analysis for {v_target} Vertexes')
-    plt.title(f'Performance Analysis: Fixed {v_target} Vertexes (Sorted by Density)')
+    y_ticks = [y_time[0]]
+    for i in range(1, 6):
+        y_ticks.append(y_time[0] + (y_time[-1] - y_time[0]) / 6 * i)
+    y_ticks.append(y_time[-1])
+    ax.set_yticks(y_ticks)
 
-
-    line1, = ax1.plot(x_labels, y_vertexes, color='#a48eff', linewidth=2, linestyle='--',
-                      label=f'Vertexes ({v_target})')
-
-
-    line2, = ax1.plot(x_labels, y_density, color='#ff8ea4', linewidth=2, marker='o', markersize=4,
-                      label='Density (x100)')
-
-    ax1.set_xlabel('Experiments (Sorted by increasing Density)')
-    ax1.set_ylabel('Count / Percentage', color='white')
-    ax1.tick_params(axis='y', labelcolor='white')
-
-
-    total_points = len(x_labels)
-    if total_points > 20:
-        step = total_points // 20 + 1
-        ax1.set_xticks(range(0, total_points, step))
-        ax1.set_xticklabels(x_labels[::step])
-    else:
-        ax1.set_xticks(range(len(x_labels)))
-        ax1.set_xticklabels(x_labels)
-
-
-    ax2 = ax1.twinx()
-
-    line3, = ax2.plot(x_labels, y_time, color='#ffcf60', linewidth=3, label='Avg Time')
-
-    ax2.set_ylabel('Time (seconds)', color='#ffcf60')
-    ax2.tick_params(axis='y', labelcolor='#ffcf60')
-
-
-    lines = [line1, line2, line3]
-    labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc='upper left', frameon=False)
-
+    ax.set_xticks(x_vals)
+    ax.legend(loc='upper left', frameon=False)
     plt.grid(True, linestyle='--', alpha=0.2)
     plt.tight_layout()
 
-
-
+    print(f"Показую графік для густини {target_density}...")
     plt.show()
 
+print("Всі графіки показано.")
